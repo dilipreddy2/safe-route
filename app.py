@@ -1,178 +1,140 @@
 
-from flask import Flask, render_template, request, jsonify
-import sqlite3
 import os
-import math
+import traceback
+
+from flask import Flask, jsonify, request, render_template
+from dotenv import load_dotenv
+from supabase import create_client
+
+# Load environment variables from .env
+load_dotenv()
 
 app = Flask(__name__)
 
-# Project folders
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_FOLDER = os.path.join(BASE_DIR, "database")
-DATABASE_PATH = os.path.join(DATABASE_FOLDER, "safe_route.db")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-os.makedirs(DATABASE_FOLDER, exist_ok=True)
+supabase = None
 
-
-# ======================================
-# DATABASE CONNECTION
-# ======================================
-
-def get_db_connection():
-    connection = sqlite3.connect(DATABASE_PATH)
-    connection.row_factory = sqlite3.Row
-    return connection
-
-
-# ======================================
-# CREATE DATABASE TABLE
-# ======================================
-
-def init_db():
-    connection = get_db_connection()
-
-    connection.execute("""
-        CREATE TABLE IF NOT EXISTS routes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            start_location TEXT NOT NULL,
-            destination TEXT NOT NULL,
-            distance REAL NOT NULL,
-            duration REAL NOT NULL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    connection.commit()
-    connection.close()
+# Initialize Supabase
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("Supabase client initialized.")
+    except Exception:
+        print("Supabase initialization failed:")
+        traceback.print_exc()
+else:
+    print("ERROR: Supabase credentials are missing.")
 
 
-# ======================================
-# HOME PAGE
-# ======================================
+def get_supabase():
+    if supabase is None:
+        raise RuntimeError("Supabase connection is not initialized.")
+    return supabase
+
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
 
-# ======================================
-# API STATUS
-# ======================================
-
-@app.route("/api/status", methods=["GET"])
-def api_status():
-    return jsonify({
-        "status": "online",
-        "message": "Safe Route server is running"
-    })
+@app.route("/api/status")
+def status():
+    return jsonify({"status": "ok"})
 
 
-# ======================================
-# SAVE ROUTE
-# ======================================
-
+# Save a route
 @app.route("/api/routes", methods=["POST"])
 def save_route():
-    data = request.get_json(silent=True) or {}
-
-    start = str(data.get("start_location", "")).strip()
-    destination = str(data.get("destination", "")).strip()
-
-    if not start or not destination:
-        return jsonify({
-            "success": False,
-            "message": "Start and destination are required"
-        }), 400
-
     try:
-        distance = float(data.get("distance"))
-        duration = float(data.get("duration"))
+        data = request.get_json(silent=True)
 
-        if not math.isfinite(distance) or not math.isfinite(duration):
-            raise ValueError("Invalid route values")
+        if not data:
+            return jsonify({"error": "No route data provided"}), 400
 
-        if distance < 0 or duration < 0:
-            raise ValueError("Route values cannot be negative")
+        route = {
+            "start_location": data.get("start_location"),
+            "destination": data.get("destination"),
+            "distance": float(data.get("distance", 0)),
+            "duration": float(data.get("duration", 0))
+        }
 
-    except (TypeError, ValueError):
-        return jsonify({
-            "success": False,
-            "message": "Invalid distance or duration"
-        }), 400
+        if not route["start_location"] or not route["destination"]:
+            return jsonify({
+                "error": "Start and destination are required"
+            }), 400
 
-    connection = get_db_connection()
-
-    cursor = connection.execute("""
-        INSERT INTO routes (
-            start_location,
-            destination,
-            distance,
-            duration
+        result = (
+            get_supabase()
+            .table("routes")
+            .insert(route)
+            .execute()
         )
-        VALUES (?, ?, ?, ?)
-    """, (start, destination, distance, duration))
 
-    connection.commit()
-    route_id = cursor.lastrowid
-    connection.close()
+        return jsonify({
+            "message": "Route saved successfully",
+            "route": result.data[0] if result.data else route
+        }), 201
 
-    return jsonify({
-        "success": True,
-        "message": "Route saved successfully",
-        "id": route_id
-    }), 201
+    except Exception:
+        print("\nDATABASE SAVE ERROR:")
+        traceback.print_exc()
+
+        return jsonify({
+            "error": "Could not save route. Check Flask terminal."
+        }), 500
 
 
-# ======================================
-# GET ROUTE HISTORY
-# ======================================
-
+# Load route history
 @app.route("/api/routes", methods=["GET"])
 def get_routes():
-    connection = get_db_connection()
+    try:
+        result = (
+            get_supabase()
+            .table("routes")
+            .select("*")
+            .order("created_at", desc=True)
+            .execute()
+        )
 
-    routes = connection.execute("""
-        SELECT id, start_location, destination,
-               distance, duration, created_at
-        FROM routes
-        ORDER BY id DESC
-        LIMIT 50
-    """).fetchall()
+        return jsonify({
+            "routes": result.data
+        })
 
-    connection.close()
+    except Exception:
+        print("\nDATABASE HISTORY ERROR:")
+        traceback.print_exc()
 
-    return jsonify([dict(route) for route in routes])
+        return jsonify({
+            "error": "Could not load route history. Check Flask terminal."
+        }), 500
 
 
-# ======================================
-# CLEAR ROUTE HISTORY
-# ======================================
-
+# Clear route history
 @app.route("/api/routes", methods=["DELETE"])
 def clear_routes():
-    connection = get_db_connection()
+    try:
+        (
+            get_supabase()
+            .table("routes")
+            .delete()
+            .gte("id", 0)
+            .execute()
+        )
 
-    connection.execute("DELETE FROM routes")
+        return jsonify({
+            "message": "Route history cleared successfully"
+        })
 
-    connection.commit()
-    connection.close()
+    except Exception:
+        print("\nDATABASE DELETE ERROR:")
+        traceback.print_exc()
 
-    return jsonify({
-        "success": True,
-        "message": "Route history cleared"
-    })
+        return jsonify({
+            "error": "Could not clear route history."
+        }), 500
 
-
-# ======================================
-# START APPLICATION
-# ======================================
 
 if __name__ == "__main__":
-    init_db()
-
-    print("================================")
-    print("SAFE ROUTE APPLICATION RUNNING")
-    print("Open http://127.0.0.1:5000")
-    print("================================")
-
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)
