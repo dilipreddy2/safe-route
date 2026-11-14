@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Safe Route - Smart Navigation</title>
+
+    <!-- Leaflet map CSS -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+    <!-- Project CSS -->
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+    <!-- Leaflet JavaScript -->
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    ></script>
+
+    <!-- Project JavaScript -->
+    <script
+        src="{{ url_for('static', filename='js/script.js') }}"
+        defer
+    ></script>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="logo">
+            <span class="logo-icon">🛡️</span>
+            <div>
+                <h1>Safe Route</h1>
+                <p>Smart and Secure Navigation System</p>
+            </div>
+        </div>
+
+        <button id="themeBtn" class="theme-button">
+            🌙 Dark Mode
+        </button>
+    </header>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="container">
+
+        <!-- INTRODUCTION -->
+        <section class="welcome-section">
+            <h2>Welcome to Safe Route</h2>
+            <p>
+                Find routes, locate nearby facilities and manage
+                your saved journeys.
+            </p>
+        </section>
+
+
+        <!-- SEARCH SECTION -->
+        <section class="panel">
+
+            <h2>Search Your Location</h2>
+
+            <div class="search-row">
+                <input
+                    type="text"
+                    id="placeInput"
+                    placeholder="Enter a place, e.g. Marina Beach, Chennai"
+                >
+
+                <button id="searchBtn">
+                    🔍 Search
+                </button>
+
+                <button id="voiceBtn">
+                    🎤 Voice
+                </button>
+            </div>
+
+            <p class="small-note">
+                Voice search requires browser speech recognition support.
+            </p>
+
+        </section>
+
+
+        <!-- MAP SECTION -->
+        <section class="panel map-panel">
+
+            <div class="section-heading">
+                <div>
+                    <h2>Interactive Navigation Map</h2>
+                    <p>Click two points to create a route.</p>
+                </div>
+
+                <button id="locationBtn" class="secondary-button">
+                    📍 Current Location
+                </button>
+            </div>
+
+            <div id="map"></div>
+
+            <div class="map-instructions">
+                <span>🟢 Select start point</span>
+                <span>🔴 Select destination</span>
+                <span>🔵 Driving route</span>
+            </div>
+
+        </section>
+
+
+        <!-- NEARBY SERVICES -->
+        <section class="panel">
+
+            <h2>Nearby Services</h2>
+
+            <p>
+                Find hospitals and police stations around the
+                current map centre.
+            </p>
+
+            <button id="nearbyBtn" class="service-button">
+                🏥 Find Nearby Services
+            </button>
+
+            <p class="small-note">
+                Nearby results depend on available OpenStreetMap data.
+            </p>
+
+        </section>
+
+
+        <!-- STATUS -->
+        <section class="panel status-panel">
+
+            <h2>Navigation Status</h2>
+
+            <p id="statusMessage" aria-live="polite">
+                Initializing Safe Route...
+            </p>
+
+            <div class="route-info" id="routeInfo">
+                Select a start point and destination to see route details.
+            </div>
+
+        </section>
+
+
+        <!-- ROUTE HISTORY -->
+        <section class="panel">
+
+            <div class="section-heading">
+                <div>
+                    <h2>Route History</h2>
+                    <p>Your recently saved routes.</p>
+                </div>
+
+                <button id="clearHistoryBtn" class="danger-button">
+                    🗑 Clear History
+                </button>
+            </div>
+
+            <div id="historyList">
+                Loading route history...
+            </div>
+
+        </section>
+
+
+        <!-- SAFETY INFORMATION -->
+        <section class="panel safety-panel">
+
+            <h2>Travel Safety Tips</h2>
+
+            <ul>
+                <li>Check your journey details before travelling.</li>
+                <li>Prefer well-lit and familiar public areas.</li>
+                <li>Keep your phone charged.</li>
+                <li>Share your trip details with someone you trust.</li>
+                <li>Use local emergency services when necessary.</li>
+            </ul>
+
+            <p class="small-note">
+                Safe Route provides standard driving directions.
+                It does not verify road safety or guarantee a safe journey.
+            </p>
+
+        </section>
+
+    </main>
+
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p>
+            Safe Route - Smart and Secure Navigation System
+        </p>
+        <p>
+            Academic Open Innovation Project
+        </p>
+    </footer>
+
+</body>
+</html>
