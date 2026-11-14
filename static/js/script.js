@@ -323,6 +323,7 @@ async function saveRoute(
 // 8. DISPLAY ROUTE HISTORY
 // ======================================
 
+
 async function displayHistory() {
 
     const historyList = document.getElementById("historyList");
@@ -339,7 +340,10 @@ async function displayHistory() {
             throw new Error("History could not be loaded");
         }
 
-        const routes = await response.json();
+        const data = await response.json();
+
+        // Get the routes array from the API response
+        const routes = data.routes || [];
 
         historyList.innerHTML = "";
 
@@ -401,6 +405,7 @@ async function displayHistory() {
             "Could not load history. Check the Flask server.";
     }
 }
+
 
 
 // ======================================
